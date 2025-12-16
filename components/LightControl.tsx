@@ -1,33 +1,84 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { controlLight } from '@/lib/hooks';
 
 interface LightControlProps {
   currentState: string;
   availability: string;
+  onRefresh?: () => void;
 }
 
-export default function LightControl({ currentState, availability }: LightControlProps) {
+export default function LightControl({ currentState, availability, onRefresh }: LightControlProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastCommand, setLastCommand] = useState<string | null>(null);
+  const cooldownTimer = useRef<NodeJS.Timeout | null>(null);
+  const prevStateRef = useRef(currentState);
 
   const isOn = currentState === 'ON';
   const isAvailable = availability === 'online';
 
+  // Detect when state actually changes from the backend
+  useEffect(() => {
+    if (prevStateRef.current !== currentState && loading && lastCommand) {
+      // State changed to match our command, stop loading
+      if (currentState === lastCommand) {
+        setLoading(false);
+        setLastCommand(null);
+        if (cooldownTimer.current) {
+          clearTimeout(cooldownTimer.current);
+        }
+      }
+    }
+    prevStateRef.current = currentState;
+  }, [currentState, loading, lastCommand]);
+
   const handleToggle = async () => {
+    // Prevent double clicks
+    if (loading) return;
+
     setLoading(true);
     setError(null);
+    
+    const command = isOn ? 'OFF' : 'ON';
+    setLastCommand(command);
 
     try {
-      const command = isOn ? 'OFF' : 'ON';
-      await controlLight(command);
+      await controlLight(command, onRefresh);
+      
+      // Trigger immediate status refresh
+      if (onRefresh) {
+        onRefresh();
+      }
+      
+      // Safety cooldown: force stop loading after 2 seconds even if state doesn't change
+      if (cooldownTimer.current) {
+        clearTimeout(cooldownTimer.current);
+      }
+      cooldownTimer.current = setTimeout(() => {
+        setLoading(false);
+        setLastCommand(null);
+      }, 2000);
+      
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setLoading(false);
+      setLastCommand(null);
+      if (cooldownTimer.current) {
+        clearTimeout(cooldownTimer.current);
+      }
     }
   };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (cooldownTimer.current) {
+        clearTimeout(cooldownTimer.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="space-y-4">

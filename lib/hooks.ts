@@ -36,28 +36,28 @@ export function useDeviceStatus(refreshInterval: number = 2000) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch('/api/devices/status');
-        if (!response.ok) throw new Error('Failed to fetch device status');
-        const result = await response.json();
-        setData(result);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch device status');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      const response = await fetch('/api/devices/status', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Failed to fetch device status');
+      const result = await response.json();
+      setData(result);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch device status');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, refreshInterval);
 
     return () => clearInterval(interval);
   }, [refreshInterval]);
 
-  return { data, loading, error };
+  return { data, loading, error, refresh: fetchData };
 }
 
 export function useTemperatureHistory(hours: number = 24) {
@@ -81,7 +81,7 @@ export function useTemperatureHistory(hours: number = 24) {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 10000); // Refresh every 10 seconds
+    const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
   }, [hours]);
@@ -89,7 +89,7 @@ export function useTemperatureHistory(hours: number = 24) {
   return { data, loading, error };
 }
 
-export function useMqttStatus(refreshInterval: number = 3000) {
+export function useMqttStatus(refreshInterval: number = 5000) {
   const [data, setData] = useState<MqttStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -118,13 +118,14 @@ export function useMqttStatus(refreshInterval: number = 3000) {
   return { data, loading, error };
 }
 
-export async function controlLight(command: 'ON' | 'OFF') {
+export async function controlLight(command: 'ON' | 'OFF', onSuccess?: () => void) {
   const response = await fetch('/api/light/control', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ command }),
+    cache: 'no-store',
   });
 
   if (!response.ok) {
@@ -132,5 +133,12 @@ export async function controlLight(command: 'ON' | 'OFF') {
     throw new Error(error.error || 'Failed to control light');
   }
 
-  return response.json();
+  const result = await response.json();
+  
+  // Trigger callback after small delay to let MQTT propagate
+  if (onSuccess) {
+    setTimeout(onSuccess, 100);
+  }
+  
+  return result;
 }

@@ -6,9 +6,9 @@ import LightControl from '@/components/LightControl';
 import { format } from 'date-fns';
 
 export default function Home() {
-  const { data: deviceStatus, loading: statusLoading } = useDeviceStatus(2000);
+  const { data: deviceStatus, loading: statusLoading, refresh: refreshDeviceStatus } = useDeviceStatus();
   const { data: tempHistory, loading: historyLoading } = useTemperatureHistory(24);
-  const { data: mqttStatus } = useMqttStatus(3000);
+  const { data: mqttStatus } = useMqttStatus();
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">
@@ -93,6 +93,7 @@ export default function Home() {
               <LightControl 
                 currentState={deviceStatus.light.state}
                 availability={deviceStatus.light.availability}
+                onRefresh={refreshDeviceStatus}
               />
             ) : (
               <p className="text-gray-400">No data available</p>
@@ -131,6 +132,7 @@ export default function Home() {
               <ul className="space-y-1 text-gray-400">
                 <li className="font-mono">• smarthome/light/living_room/state</li>
                 <li className="font-mono">• smarthome/light/living_room/command</li>
+                <li className="font-mono">• smarthome/light/living_room/availability</li>
               </ul>
             </div>
           </div>

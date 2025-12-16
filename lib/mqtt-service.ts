@@ -21,6 +21,7 @@ const TOPICS = {
   TEMP_AVAILABILITY: 'smarthome/sensor/temperature/living_room/availability',
   LIGHT_STATE: 'smarthome/light/living_room/state',
   LIGHT_COMMAND: 'smarthome/light/living_room/command',
+  LIGHT_AVAILABILITY: 'smarthome/light/living_room/availability',
 };
 
 export function getMqttClient(): mqtt.MqttClient | null {
@@ -51,6 +52,7 @@ export function initializeMqttService() {
       TOPICS.TEMP_STATE,
       TOPICS.TEMP_AVAILABILITY,
       TOPICS.LIGHT_STATE,
+      TOPICS.LIGHT_AVAILABILITY,
     ];
 
     topicsToSubscribe.forEach((topic) => {
@@ -108,6 +110,10 @@ async function handleMqttMessage(topic: string, payload: string) {
       await handleLightState(payload);
       break;
 
+    case TOPICS.LIGHT_AVAILABILITY:
+      await handleLightAvailability(payload);
+      break;
+
     default:
       console.log(`Unhandled topic: ${topic}`);
   }
@@ -155,13 +161,18 @@ async function handleLightState(payload: string) {
   }
 }
 
+async function handleLightAvailability(payload: string) {
+  const availability = payload.toLowerCase();
+  await insertDeviceAvailability('light_living_room', availability);
+}
+
 export async function publishLightCommand(command: 'ON' | 'OFF') {
   if (!mqttClient || !mqttClient.connected) {
     throw new Error('MQTT client not connected');
   }
 
   return new Promise<void>((resolve, reject) => {
-    mqttClient!.publish(TOPICS.LIGHT_COMMAND, command, { qos: 1 }, (err) => {
+    mqttClient!.publish(TOPICS.LIGHT_COMMAND, command, { qos: 0 }, (err) => {
       if (err) {
         console.error('[MQTT] Failed to publish light command:', err);
         reject(err);
