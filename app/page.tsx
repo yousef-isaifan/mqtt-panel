@@ -3,6 +3,8 @@
 import { useDeviceStatus, useTemperatureHistory, useMqttStatus } from '@/lib/hooks';
 import TemperatureChart from '@/components/TemperatureChart';
 import LightControl from '@/components/LightControl';
+import ACControl from '@/components/ACControl';
+import AutomationManager from '@/components/AutomationManager';
 import { format } from 'date-fns';
 
 export default function Home() {
@@ -36,7 +38,7 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Status Cards Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Temperature Card */}
           <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
             <div className="flex items-center justify-between mb-4">
@@ -99,6 +101,16 @@ export default function Home() {
               <p className="text-gray-400">No data available</p>
             )}
           </div>
+
+          {/* AC Control Card */}
+          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <ACControl />
+          </div>
+        </div>
+
+        {/* Automation Manager */}
+        <div className="mb-8">
+          <AutomationManager />
         </div>
 
         {/* Temperature History Chart */}
@@ -119,7 +131,7 @@ export default function Home() {
         {/* Device Topics Info */}
         <div className="mt-8 bg-gray-800 rounded-lg p-6 border border-gray-700">
           <h2 className="text-xl font-semibold text-gray-200 mb-4">MQTT Topics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <h3 className="font-medium text-gray-300 mb-2">Temperature Sensor</h3>
               <ul className="space-y-1 text-gray-400">
@@ -133,6 +145,14 @@ export default function Home() {
                 <li className="font-mono">• smarthome/light/living_room/state</li>
                 <li className="font-mono">• smarthome/light/living_room/command</li>
                 <li className="font-mono">• smarthome/light/living_room/availability</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-medium text-gray-300 mb-2">Smart AC</h3>
+              <ul className="space-y-1 text-gray-400">
+                <li className="font-mono">• smarthome/ac/living_room/state</li>
+                <li className="font-mono">• smarthome/ac/living_room/command</li>
+                <li className="font-mono">• smarthome/ac/living_room/availability</li>
               </ul>
             </div>
           </div>

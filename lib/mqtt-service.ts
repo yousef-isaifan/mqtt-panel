@@ -5,6 +5,7 @@ import {
   insertDeviceAvailability,
   insertConnectionStatus,
 } from './queries';
+import { evaluateAutomationRules } from './automation-engine';
 
 let mqttClient: mqtt.MqttClient | null = null;
 let isInitialized = false;
@@ -22,6 +23,9 @@ const TOPICS = {
   LIGHT_STATE: 'smarthome/light/living_room/state',
   LIGHT_COMMAND: 'smarthome/light/living_room/command',
   LIGHT_AVAILABILITY: 'smarthome/light/living_room/availability',
+  AC_STATE: 'smarthome/ac/living_room/state',
+  AC_COMMAND: 'smarthome/ac/living_room/command',
+  AC_AVAILABILITY: 'smarthome/ac/living_room/availability',
 };
 
 export function getMqttClient(): mqtt.MqttClient | null {
@@ -53,6 +57,8 @@ export function initializeMqttService() {
       TOPICS.TEMP_AVAILABILITY,
       TOPICS.LIGHT_STATE,
       TOPICS.LIGHT_AVAILABILITY,
+      TOPICS.AC_STATE,
+      TOPICS.AC_AVAILABILITY,
     ];
 
     topicsToSubscribe.forEach((topic) => {
@@ -114,6 +120,14 @@ async function handleMqttMessage(topic: string, payload: string) {
       await handleLightAvailability(payload);
       break;
 
+    case TOPICS.AC_STATE:
+      await handleACState(payload);
+      break;
+
+    case TOPICS.AC_AVAILABILITY:
+      await handleACAvailability(payload);
+      break;
+
     default:
       console.log(`Unhandled topic: ${topic}`);
   }
@@ -128,12 +142,16 @@ async function handleTemperatureState(payload: string) {
 
     if (!isNaN(temperature)) {
       await insertTemperatureReading('temp_living_room', temperature, unit);
+      // Evaluate automation rules for temperature changes
+      await evaluateAutomationRules('temp_living_room', temperature);
     }
   } catch (error) {
     // If not JSON, try parsing as plain number
     const temperature = parseFloat(payload);
     if (!isNaN(temperature)) {
       await insertTemperatureReading('temp_living_room', temperature, 'celsius');
+      // Evaluate automation rules for temperature changes
+      await evaluateAutomationRules('temp_living_room', temperature);
     } else {
       console.error('Invalid temperature payload:', payload);
     }
@@ -166,6 +184,24 @@ async function handleLightAvailability(payload: string) {
   await insertDeviceAvailability('light_living_room', availability);
 }
 
+async function handleACState(payload: string) {
+  try {
+    const data = JSON.parse(payload);
+    const state = data.power || 'UNKNOWN';
+    const temperature = data.temperature;
+    
+    // Store AC state in device_states with additional data in a format we can use
+    await insertDeviceState('ac_living_room', state, temperature, data.fan_speed);
+  } catch (error) {
+    console.error('Invalid AC state payload:', payload);
+  }
+}
+
+async function handleACAvailability(payload: string) {
+  const availability = payload.toLowerCase();
+  await insertDeviceAvailability('ac_living_room', availability);
+}
+
 export async function publishLightCommand(command: 'ON' | 'OFF') {
   if (!mqttClient || !mqttClient.connected) {
     throw new Error('MQTT client not connected');
@@ -177,6 +213,29 @@ export async function publishLightCommand(command: 'ON' | 'OFF') {
         console.error('[MQTT] Failed to publish light command:', err);
         reject(err);
       } else {
+        resolve();
+      }
+    });
+  });
+}
+
+export async function publishACCommand(command: {
+  power?: 'ON' | 'OFF';
+  temperature?: number;
+  fan_speed?: 'low' | 'medium' | 'high' | 'auto';
+}) {
+  if (!mqttClient || !mqttClient.connected) {
+    throw new Error('MQTT client not connected');
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const payload = JSON.stringify(command);
+    mqttClient!.publish(TOPICS.AC_COMMAND, payload, { qos: 0 }, (err) => {
+      if (err) {
+        console.error('[MQTT] Failed to publish AC command:', err);
+        reject(err);
+      } else {
+        console.log('[MQTT] ✓ Published AC command:', command);
         resolve();
       }
     });

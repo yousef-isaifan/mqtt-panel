@@ -9,11 +9,16 @@ export async function GET(request: NextRequest) {
     // Get latest light state
     const lightState = await getLatestDeviceState('light_living_room');
     
-    // Get availability for both devices
+    // Get latest AC state
+    const acState = await getLatestDeviceState('ac_living_room');
+    
+    // Get availability for all devices
     const tempAvailability = await getLatestAvailability('temp_living_room');
     const lightAvailability = await getLatestAvailability('light_living_room');
+    const acAvailability = await getLatestAvailability('ac_living_room');
 
     return NextResponse.json({
+      success: true,
       temperature: temperature ? {
         value: temperature.temperature,
         unit: temperature.unit,
@@ -27,11 +32,18 @@ export async function GET(request: NextRequest) {
         timestamp: lightState.timestamp,
         availability: lightAvailability?.availability || 'unknown',
       } : null,
+      ac: acState ? {
+        power: acState.state,
+        temperature: acState.brightness, // Using brightness field for temperature
+        fan_speed: acState.color, // Using color field for fan_speed
+        timestamp: acState.timestamp,
+        availability: acAvailability?.availability || 'unknown',
+      } : null,
     });
   } catch (error) {
     console.error('Error fetching device status:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch device status' },
+      { success: false, error: 'Failed to fetch device status' },
       { status: 500 }
     );
   }
