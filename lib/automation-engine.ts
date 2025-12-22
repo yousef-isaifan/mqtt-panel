@@ -24,7 +24,7 @@ const DEVICE_TOPICS: DeviceTopicMap = {
 
 // Track last triggered time to prevent rapid re-triggering
 const lastTriggered = new Map<number, number>();
-const TRIGGER_COOLDOWN = 60000; // 1 minute cooldown
+const TRIGGER_COOLDOWN = 8000; // 8 seconds cooldown to prevent spam
 
 export async function evaluateAutomationRules(
   deviceId: string,
@@ -48,11 +48,11 @@ export async function evaluateAutomationRules(
         const now = Date.now();
 
         if (now - lastTriggerTime < TRIGGER_COOLDOWN) {
-          console.log(`[Automation] Rule "${rule.name}" in cooldown, skipping`);
+          console.log(`[Automation] Rule "${rule.name}" in cooldown, skipping (${Math.round((TRIGGER_COOLDOWN - (now - lastTriggerTime)) / 1000)}s remaining)`);
           continue;
         }
 
-        console.log(`[Automation] Triggering rule: ${rule.name}`);
+        console.log(`[Automation] Triggering rule: ${rule.name} (condition: ${rule.condition_type}, value: ${value})`);
         await executeAction(rule, value);
         lastTriggered.set(rule.id, now);
       }

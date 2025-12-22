@@ -12,6 +12,7 @@ interface ACCommand {
 export async function POST(request: NextRequest) {
   try {
     const body: ACCommand = await request.json();
+    console.log('[AC API] Received command:', body);
 
     // Validate temperature if provided
     if (body.temperature !== undefined) {
@@ -47,7 +48,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('[AC API] Publishing MQTT command...');
     await publishACCommand(body);
+    console.log('[AC API] Command published successfully');
 
     return NextResponse.json({
       success: true,
@@ -55,7 +58,7 @@ export async function POST(request: NextRequest) {
       command: body,
     });
   } catch (error) {
-    console.error('Failed to control AC:', error);
+    console.error('[AC API] Failed to control AC:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
     return NextResponse.json(

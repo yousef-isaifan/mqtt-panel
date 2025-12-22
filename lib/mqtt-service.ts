@@ -224,18 +224,26 @@ export async function publishACCommand(command: {
   temperature?: number;
   fan_speed?: 'low' | 'medium' | 'high' | 'auto';
 }) {
+  console.log('[MQTT Service] publishACCommand called with:', command);
+  console.log('[MQTT Service] Client exists:', !!mqttClient);
+  console.log('[MQTT Service] Client connected:', mqttClient?.connected);
+  
   if (!mqttClient || !mqttClient.connected) {
+    console.error('[MQTT Service] MQTT client not connected');
     throw new Error('MQTT client not connected');
   }
 
   return new Promise<void>((resolve, reject) => {
     const payload = JSON.stringify(command);
+    console.log('[MQTT Service] Publishing to topic:', TOPICS.AC_COMMAND);
+    console.log('[MQTT Service] Payload:', payload);
+    
     mqttClient!.publish(TOPICS.AC_COMMAND, payload, { qos: 0 }, (err) => {
       if (err) {
         console.error('[MQTT] Failed to publish AC command:', err);
         reject(err);
       } else {
-        console.log('[MQTT] ✓ Published AC command:', command);
+        console.log('[MQTT] ✓ Published AC command successfully');
         resolve();
       }
     });
