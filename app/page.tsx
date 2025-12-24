@@ -5,12 +5,15 @@ import TemperatureChart from '@/components/TemperatureChart';
 import LightControl from '@/components/LightControl';
 import ACControl from '@/components/ACControl';
 import AutomationManager from '@/components/AutomationManager';
+import SignOutButton from '@/components/SignOutButton';
 import { format } from 'date-fns';
+import { useSession } from 'next-auth/react';
 
 export default function Home() {
   const { data: deviceStatus, loading: statusLoading, refresh: refreshDeviceStatus } = useDeviceStatus();
   const { data: tempHistory, loading: historyLoading } = useTemperatureHistory(24);
   const { data: mqttStatus } = useMqttStatus();
+  const { data: session } = useSession();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
@@ -22,23 +25,34 @@ export default function Home() {
               <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                 🏠 Smart Home Dashboard
               </h1>
-              <p className="text-gray-400 mt-1 text-sm">Real-time monitoring & automation control</p>
+              <p className="text-gray-400 mt-1 text-sm">
+                Real-time monitoring & automation control
+                {session?.user?.name && (
+                  <span className="ml-2 text-cyan-400">• Welcome, {session.user.name}</span>
+                )}
+              </p>
             </div>
             
-            {/* MQTT Connection Status */}
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg backdrop-blur-sm transition-all ${
-              mqttStatus?.connected 
-                ? 'bg-green-500/10 border border-green-500/30' 
-                : 'bg-red-500/10 border border-red-500/30'
-            }`}>
-              <div className={`w-2.5 h-2.5 rounded-full ${
-                mqttStatus?.connected ? 'bg-green-400 animate-pulse shadow-lg shadow-green-400/50' : 'bg-red-400'
-              }`} />
-              <span className={`text-xs sm:text-sm font-medium ${
-                mqttStatus?.connected ? 'text-green-300' : 'text-red-300'
+            {/* Right side: MQTT Status and Sign Out */}
+            <div className="flex items-center gap-3">
+              {/* MQTT Connection Status */}
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg backdrop-blur-sm transition-all ${
+                mqttStatus?.connected 
+                  ? 'bg-green-500/10 border border-green-500/30' 
+                  : 'bg-red-500/10 border border-red-500/30'
               }`}>
-                {mqttStatus?.connected ? 'MQTT Connected' : 'MQTT Offline'}
-              </span>
+                <div className={`w-2.5 h-2.5 rounded-full ${
+                  mqttStatus?.connected ? 'bg-green-400 animate-pulse shadow-lg shadow-green-400/50' : 'bg-red-400'
+                }`} />
+                <span className={`text-xs sm:text-sm font-medium ${
+                  mqttStatus?.connected ? 'text-green-300' : 'text-red-300'
+                }`}>
+                  {mqttStatus?.connected ? 'MQTT Connected' : 'MQTT Offline'}
+                </span>
+              </div>
+              
+              {/* Sign Out Button */}
+              <SignOutButton />
             </div>
           </div>
         </div>

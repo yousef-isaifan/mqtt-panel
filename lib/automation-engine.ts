@@ -89,7 +89,7 @@ function evaluateCondition(rule: AutomationRule, currentValue: number | string):
 
 async function executeAction(rule: AutomationRule, triggerValue: number | string): Promise<void> {
   try {
-    const { action_type, action_device_id, action_payload } = rule;
+    const { action_device_id, action_payload } = rule;
     const mqttClient = getMqttClient();
 
     if (!mqttClient || !mqttClient.connected) {
